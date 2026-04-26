@@ -1,6 +1,6 @@
 <div align="center">
 
-# 💬 Outlier Chat Downloader
+# 💬 GPT Chat Downloader
 
 ### A Firefox Extension to Download AI Chat Conversations
 
