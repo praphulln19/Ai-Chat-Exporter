@@ -1,6 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
   const downloadBtn = document.getElementById('downloadBtn');
-  const downloadDocxBtn = document.getElementById('downloadDocxBtn');
+  const downloadDocBtn =
+    document.getElementById('downloadDocBtn') ||
+    document.getElementById('downloadDocxBtn');
   const copyBtn = document.getElementById('copyBtn');
   const status = document.getElementById('status');
 
@@ -27,127 +29,114 @@ document.addEventListener('DOMContentLoaded', () => {
     status.style.color = isError ? '#e74c3c' : '#4ecca3';
   }
 
-  // ============================================================
-  // Extract chat from the page
-  // ============================================================
-  async function getMarkdown() {
+  async function getMessages() {
     const options = getOptions();
     const tabs = await browser.tabs.query({ active: true, currentWindow: true });
     const tabId = tabs[0].id;
 
     const results = await browser.tabs.executeScript(tabId, {
-        code: `
+      code: `
         (function() {
-            try {
+          try {
+            const includeThinking = ${JSON.stringify(options.includeThinking)};
             const messages = [];
             const url = window.location.href;
 
-            // ========================================
-            // DETECT WHICH SITE WE'RE ON
-            // ========================================
+            function cleanNode(node) {
+              const clone = node.cloneNode(true);
 
-            // --- CHATGPT ---
+              clone.querySelectorAll('button, svg, img, video, audio, canvas, iframe, textarea, input').forEach(el => el.remove());
+
+              clone.querySelectorAll('[data-testid*="copy"], [aria-label*="Copy"], [aria-label*="copy"]').forEach(el => el.remove());
+
+              return clone;
+            }
+
+            function normalizeHTML(node) {
+              const clone = cleanNode(node);
+
+              clone.querySelectorAll('strong').forEach(el => {
+                el.outerHTML = '<b>' + el.innerHTML + '</b>';
+              });
+
+              clone.querySelectorAll('em').forEach(el => {
+                el.outerHTML = '<i>' + el.innerHTML + '</i>';
+              });
+
+              clone.querySelectorAll('code').forEach(el => {
+                el.innerHTML = el.innerHTML;
+              });
+
+              return clone.innerHTML;
+            }
+
+            function addMessage(role, node) {
+              if (!node) return;
+              const text = (node.innerText || '').trim();
+              const html = normalizeHTML(node).trim();
+              if (!text) return;
+              messages.push({ role, content: text, html });
+            }
+
             if (url.includes('chat.openai.com') || url.includes('chatgpt.com')) {
+              const turns = document.querySelectorAll('[data-message-author-role]');
 
-                const turns = document.querySelectorAll('[data-message-author-role]');
-
-                turns.forEach(function(turn) {
+              turns.forEach(turn => {
                 const role = turn.getAttribute('data-message-author-role');
-                const textEl = turn.querySelector('.markdown, .whitespace-pre-wrap, [class*="message"]');
-                const text = (textEl || turn).innerText.trim();
+                const contentEl =
+                  turn.querySelector('.markdown') ||
+                  turn.querySelector('.whitespace-pre-wrap') ||
+                  turn.querySelector('[class*="message"]') ||
+                  turn;
 
-                if (text && text.length > 0) {
-                    if (role === 'user') {
-                    messages.push({ role: 'user', content: text });
-                    } else if (role === 'assistant') {
-                    messages.push({ role: 'assistant', content: text });
-                    }
-                }
-                });
-
-                // Fallback for ChatGPT if above didn't work
-                if (messages.length === 0) {
-                const articles = document.querySelectorAll('article[data-testid^="conversation-turn"]');
-                articles.forEach(function(article) {
-                    const userMsg = article.querySelector('[data-message-author-role="user"]');
-                    const assistantMsg = article.querySelector('[data-message-author-role="assistant"]');
-
-                    if (userMsg) {
-                    const text = userMsg.innerText.trim();
-                    if (text) messages.push({ role: 'user', content: text });
-                    }
-                    if (assistantMsg) {
-                    const mdBlock = assistantMsg.querySelector('.markdown');
-                    const text = (mdBlock || assistantMsg).innerText.trim();
-                    if (text) messages.push({ role: 'assistant', content: text });
-                    }
-                });
-                }
+                if (role === 'user') addMessage('user', contentEl);
+                if (role === 'assistant') addMessage('assistant', contentEl);
+              });
             }
 
-            // --- CLAUDE ---
             else if (url.includes('claude.ai')) {
+              const allTurns = document.querySelectorAll('[class*="turn"], [data-testid="human-turn"], [data-testid="ai-turn"]');
 
-                const humanMsgs = document.querySelectorAll('[class*="human-turn"], [data-testid="human-turn"]');
-                const aiMsgs = document.querySelectorAll('[class*="ai-turn"], [data-testid="ai-turn"]');
-
-                // Try structured approach
-                const allTurns = document.querySelectorAll('[class*="turn"]');
-                allTurns.forEach(function(turn) {
+              allTurns.forEach(turn => {
                 const className = (turn.className || '').toString().toLowerCase();
-                const text = turn.innerText.trim();
-                if (!text) return;
+                const testId = (turn.getAttribute('data-testid') || '').toLowerCase();
 
-                if (className.includes('human')) {
-                    messages.push({ role: 'user', content: text });
-                } else if (className.includes('ai') || className.includes('assistant')) {
-                    messages.push({ role: 'assistant', content: text });
+                if (className.includes('human') || testId.includes('human')) {
+                  addMessage('user', turn);
+                } else if (className.includes('ai') || className.includes('assistant') || testId.includes('ai')) {
+                  addMessage('assistant', turn);
                 }
-                });
+              });
             }
 
-            // --- OUTLIER PLAYGROUND ---
             else if (url.includes('outlier.ai') || url.includes('dataannotation.tech') || url.includes('playground')) {
+              const container =
+                document.querySelector('div.flex.flex-col.overflow-x-auto.overflow-y-clip.p-1.w-full.h-full') ||
+                document.querySelector('main') ||
+                document.body;
 
-                const chatContainer = document.querySelector(
-                'div.flex.flex-col.overflow-x-auto.overflow-y-clip.p-1.w-full.h-full'
-                );
-                const container = chatContainer || document.querySelector('main') || document.body;
-                const responseTurns = document.querySelectorAll('[data-testid^="response-turn"]');
+              const children = Array.from(container.children);
 
-                if (responseTurns.length > 0) {
-                const children = container.children;
-                for (let i = 0; i < children.length; i++) {
-                    const child = children[i];
-                    const hasResponse = child.querySelector('[data-testid^="response-turn"]');
-                    const hasThinking = child.querySelector('[data-testid="thinking-process"]');
+              children.forEach(child => {
+                const responseEl = child.querySelector('[data-testid^="response-turn"]');
+                const thinkingEl = child.querySelector('[data-testid="thinking-process"]');
 
-                    if (hasResponse) {
-                    if (hasThinking && ${options.includeThinking}) {
-                        const thinkText = hasThinking.innerText.trim();
-                        if (thinkText) {
-                        messages.push({ role: 'assistant-thinking', content: thinkText });
-                        }
-                    }
-                    const respText = hasResponse.innerText.trim();
-                    if (respText) {
-                        messages.push({ role: 'assistant', content: respText });
-                    }
-                    } else {
-                    const text = child.innerText.trim();
-                    if (text && text.length > 1) {
-                        messages.push({ role: 'user', content: text });
-                    }
-                    }
+                if (responseEl) {
+                  if (thinkingEl && includeThinking) {
+                    addMessage('assistant-thinking', thinkingEl);
+                  }
+                  addMessage('assistant', responseEl);
+                } else {
+                  const txt = (child.innerText || '').trim();
+                  if (txt.length > 1) {
+                    addMessage('user', child);
+                  }
                 }
-                }
+              });
             }
 
-            // --- GENERIC FALLBACK (any site) ---
             if (messages.length === 0) {
-
-                // Try common patterns
-                const selectors = [
+              const selectors = [
                 { sel: '[data-message-author-role="user"]', role: 'user' },
                 { sel: '[data-message-author-role="assistant"]', role: 'assistant' },
                 { sel: '[data-role="user"]', role: 'user' },
@@ -156,68 +145,50 @@ document.addEventListener('DOMContentLoaded', () => {
                 { sel: '[class*="assistant-message"]', role: 'assistant' },
                 { sel: '[class*="human"]', role: 'user' },
                 { sel: '[class*="bot-message"]', role: 'assistant' },
-                ];
+              ];
 
-                const found = [];
-                selectors.forEach(function(s) {
-                document.querySelectorAll(s.sel).forEach(function(el) {
-                    found.push({ el: el, role: s.role });
-                });
-                });
+              const found = [];
+              selectors.forEach(s => {
+                document.querySelectorAll(s.sel).forEach(el => found.push({ el, role: s.role }));
+              });
 
-                // Sort by DOM order
-                found.sort(function(a, b) {
+              found.sort((a, b) => {
                 const pos = a.el.compareDocumentPosition(b.el);
                 return pos & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
-                });
+              });
 
-                found.forEach(function(item) {
-                const text = item.el.innerText.trim();
-                if (text && text.length > 0) {
-                    messages.push({ role: item.role, content: text });
-                }
-                });
+              found.forEach(item => addMessage(item.role, item.el));
             }
 
-            // Last resort: grab all prose blocks
             if (messages.length === 0) {
-                const proseBlocks = document.querySelectorAll('.prose, .markdown, .whitespace-pre-wrap');
-                proseBlocks.forEach(function(block) {
-                const text = block.innerText.trim();
-                if (text) {
-                    messages.push({ role: 'assistant', content: text });
-                }
-                });
+              const proseBlocks = document.querySelectorAll('.prose, .markdown, .whitespace-pre-wrap');
+              proseBlocks.forEach(block => addMessage('assistant', block));
             }
 
-            // Deduplicate
             const deduped = [];
             for (let i = 0; i < messages.length; i++) {
-                const msg = messages[i];
-                const last = deduped[deduped.length - 1];
-                if (!last || last.content !== msg.content) {
+              const msg = messages[i];
+              const last = deduped[deduped.length - 1];
+              if (!last || !(last.content === msg.content && last.role === msg.role)) {
                 deduped.push(msg);
-                }
+              }
             }
 
             return { success: true, messages: deduped };
-
-            } catch (err) {
+          } catch (err) {
             return { success: false, error: err.message };
-            }
+          }
         })();
-        `
+      `
     });
 
     const result = results[0];
     if (!result || !result.success) throw new Error(result ? result.error : 'Failed to extract.');
-    if (result.messages.length === 0) throw new Error('No messages found.');
+    if (!result.messages || result.messages.length === 0) throw new Error('No messages found.');
 
     return { messages: result.messages, options };
-    }
-  // ============================================================
-  // Convert messages to Markdown
-  // ============================================================
+  }
+
   function toMarkdown(messages, options) {
     let md = '';
 
@@ -230,10 +201,13 @@ document.addEventListener('DOMContentLoaded', () => {
     md += '# Outlier Playground Chat\n\n';
 
     messages.forEach((msg, i) => {
-      let label = msg.role === 'user' ? '👤 User' :
-                  msg.role === 'assistant' ? '🤖 Assistant' :
-                  msg.role === 'assistant-thinking' ? '🧠 Thinking' :
-                  '💬 ' + msg.role;
+      let label = msg.role === 'user'
+        ? '👤 User'
+        : msg.role === 'assistant'
+        ? '🤖 Assistant'
+        : msg.role === 'assistant-thinking'
+        ? '🧠 Thinking'
+        : '💬 ' + msg.role;
 
       md += '## ' + label + '\n\n';
       md += msg.content + '\n\n';
@@ -243,9 +217,6 @@ document.addEventListener('DOMContentLoaded', () => {
     return md;
   }
 
-  // ============================================================
-  // Convert messages to Word-compatible HTML
-  // ============================================================
   function toWordHTML(messages, options) {
     let body = '';
 
@@ -279,8 +250,9 @@ document.addEventListener('DOMContentLoaded', () => {
       body += '<div class="' + sectionClass + '">';
       body += '<h2>' + label + '</h2>';
 
-      const content = escapeHTML(msg.content);
-      const formatted = formatContent(content);
+      const formatted = msg.html
+        ? cleanHTMLForWord(msg.html)
+        : formatContent(escapeHTML(msg.content));
 
       if (msg.role === 'assistant-thinking') {
         body += '<div class="thinking-block">' + formatted + '</div>';
@@ -291,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
       body += '</div>';
 
       if (i < messages.length - 1) {
-        body += '<div class="divider">&nbsp;</div>';
+        body += '<div class="divider"></div>';
       }
     });
 
@@ -299,21 +271,84 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function escapeHTML(text) {
-    return text
+    return String(text)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
+  }
+
+  function cleanHTMLForWord(html) {
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+
+    temp.querySelectorAll('script, style, button, svg, img, video, audio, canvas, iframe').forEach(el => el.remove());
+
+    temp.querySelectorAll('strong').forEach(el => {
+      el.outerHTML = '<b>' + el.innerHTML + '</b>';
+    });
+
+    temp.querySelectorAll('em').forEach(el => {
+      el.outerHTML = '<i>' + el.innerHTML + '</i>';
+    });
+
+    temp.querySelectorAll('*').forEach(el => {
+      el.removeAttribute('class');
+      el.removeAttribute('id');
+      el.removeAttribute('data-testid');
+      el.removeAttribute('style');
+    });
+
+    temp.querySelectorAll('p, li, span, div, b, i, code, pre, h1, h2, h3, h4, h5').forEach(el => {
+      el.setAttribute('style', 'color:#333333;');
+    });
+
+    temp.querySelectorAll('pre').forEach(pre => {
+      pre.setAttribute(
+        'style',
+        'color:#333333;background:#f4f4f4;border:1pt solid #dddddd;padding:8pt;white-space:pre-wrap;word-wrap:break-word;'
+      );
+    });
+
+    temp.querySelectorAll('code').forEach(code => {
+      if (code.parentElement && code.parentElement.tagName.toLowerCase() !== 'pre') {
+        code.setAttribute(
+          'style',
+          'font-family:Consolas,monospace;font-size:9pt;background:#f0f0f0;padding:1pt 3pt;color:#333333;'
+        );
+      }
+    });
+
+    temp.querySelectorAll('ul, ol').forEach(list => {
+      list.setAttribute('style', 'margin:6pt 0 6pt 18pt;color:#333333;');
+    });
+
+    return temp.innerHTML;
   }
 
   function formatContent(text) {
     let html = '';
     const lines = text.split('\n');
     let inCode = false;
+    let inUL = false;
+    let inOL = false;
+
+    function closeLists() {
+      if (inUL) {
+        html += '</ul>';
+        inUL = false;
+      }
+      if (inOL) {
+        html += '</ol>';
+        inOL = false;
+      }
+    }
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
+      const trimmed = line.trim();
 
-      if (line.trim().startsWith('```')) {
+      if (trimmed.startsWith('```')) {
+        closeLists();
         if (inCode) {
           html += '</code></pre>';
           inCode = false;
@@ -325,50 +360,62 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (inCode) {
-        html += line + '\n';
+        html += escapeHTML(line) + '\n';
         continue;
       }
 
-      if (line.startsWith('### ')) {
-        html += '<h3>' + line.slice(4) + '</h3>';
-      } else if (line.startsWith('## ')) {
-        html += '<h3>' + line.slice(3) + '</h3>';
-      } else if (line.startsWith('# ')) {
-        html += '<h2>' + line.slice(2) + '</h2>';
-      } else if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
-        html += '<li>' + line.trim().slice(2) + '</li>';
-      } else if (/^\d+\.\s/.test(line.trim())) {
-        html += '<li>' + line.trim().replace(/^\d+\.\s/, '') + '</li>';
-      } else if (line.trim() === '') {
+      if (trimmed.startsWith('### ')) {
+        closeLists();
+        html += '<h3>' + inlineFormat(trimmed.slice(4)) + '</h3>';
+      } else if (trimmed.startsWith('## ')) {
+        closeLists();
+        html += '<h2>' + inlineFormat(trimmed.slice(3)) + '</h2>';
+      } else if (trimmed.startsWith('# ')) {
+        closeLists();
+        html += '<h1>' + inlineFormat(trimmed.slice(2)) + '</h1>';
+      } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+        if (inOL) {
+          html += '</ol>';
+          inOL = false;
+        }
+        if (!inUL) {
+          html += '<ul>';
+          inUL = true;
+        }
+        html += '<li>' + inlineFormat(trimmed.slice(2)) + '</li>';
+      } else if (/^\\d+\\.\\s/.test(trimmed)) {
+        if (inUL) {
+          html += '</ul>';
+          inUL = false;
+        }
+        if (!inOL) {
+          html += '<ol>';
+          inOL = true;
+        }
+        html += '<li>' + inlineFormat(trimmed.replace(/^\\d+\\.\\s/, '')) + '</li>';
+      } else if (trimmed === '') {
+        closeLists();
         html += '<br>';
       } else {
-        let formatted = line
-          .replace(/\*\*(.+?)\*\*/g, '<b>\$1</b>')
-          .replace(/\*(.+?)\*/g, '<i>\$1</i>')
-          .replace(/`(.+?)`/g, '<code class="inline-code">\$1</code>');
-        html += '<p>' + formatted + '</p>';
+        closeLists();
+        html += '<p>' + inlineFormat(trimmed) + '</p>';
       }
     }
 
+    closeLists();
     if (inCode) html += '</code></pre>';
+
     return html;
   }
 
-  // ============================================================
-  // Generate Word document - MHTML format
-  // NO INDENTATION on MIME lines (critical!)
-  // ============================================================
-function generateWordDoc(bodyHTML) {
-    // Force dark text by adding inline color to all tags in the body HTML
-    const darkBodyHTML = bodyHTML
-      .replace(/<p>/g, '<p style="color:#333333;">')
-      .replace(/<li>/g, '<li style="color:#333333;">')
-      .replace(/<h1>/g, '<h1 style="color:#1a1a2e;">')
-      .replace(/<h2>/g, '<h2 style="color:#2c3e50;">')
-      .replace(/<h3>/g, '<h3 style="color:#333333;">')
-      .replace(/<pre>/g, '<pre style="color:#333333; background:#f4f4f4;">')
-      .replace(/<code>/g, '<code style="color:#333333;">');
+  function inlineFormat(text) {
+    return escapeHTML(text)
+      .replace(/\\*\\*(.+?)\\*\\*/g, '<b>\$1</b>')
+      .replace(/\\*(.+?)\\*/g, '<i>\$1</i>')
+      .replace(/`(.+?)`/g, '<code>\$1</code>');
+  }
 
+  function generateWordDoc(bodyHTML) {
     const htmlContent = `<html xmlns:v="urn:schemas-microsoft-com:vml"
 xmlns:o="urn:schemas-microsoft-com:office:office"
 xmlns:w="urn:schemas-microsoft-com:office:word"
@@ -402,37 +449,30 @@ body {
   font-family: Calibri, sans-serif;
   font-size: 11pt;
   line-height: 1.5;
-  color: #333333 !important;
-  mso-themecolor: text1;
+  color: #333333;
   background: white;
 }
-/* Force all text dark */
 body, p, li, span, div, td, th {
   color: #333333 !important;
-  mso-style-textfill-fill-color: #333333;
 }
 p {
-  margin: 0in;
-  margin-bottom: 6pt;
+  margin: 0 0 6pt 0;
   font-family: Calibri, sans-serif;
   font-size: 11pt;
-  color: #333333;
 }
 h1 {
   font-family: Calibri, sans-serif;
   font-size: 20pt;
   font-weight: bold;
   color: #1a1a2e !important;
-  margin-top: 12pt;
-  margin-bottom: 6pt;
+  margin: 12pt 0 6pt 0;
 }
 h2 {
   font-family: Calibri, sans-serif;
   font-size: 16pt;
   font-weight: bold;
   color: #2c3e50 !important;
-  margin-top: 12pt;
-  margin-bottom: 4pt;
+  margin: 12pt 0 4pt 0;
   border-bottom: 1pt solid #cccccc;
   padding-bottom: 4pt;
 }
@@ -441,8 +481,7 @@ h3 {
   font-size: 13pt;
   font-weight: bold;
   color: #333333 !important;
-  margin-top: 10pt;
-  margin-bottom: 4pt;
+  margin: 10pt 0 4pt 0;
 }
 pre {
   font-family: Consolas, monospace;
@@ -453,30 +492,22 @@ pre {
   margin: 6pt 0;
   white-space: pre-wrap;
   word-wrap: break-word;
-  color: #333333 !important;
 }
 code {
   font-family: Consolas, monospace;
   font-size: 9pt;
-  color: #333333 !important;
 }
-.inline-code {
-  font-family: Consolas, monospace;
-  font-size: 9pt;
-  background: #f0f0f0;
-  padding: 1pt 3pt;
-  color: #333333 !important;
+ul, ol {
+  margin: 6pt 0 6pt 18pt;
 }
 li {
   font-family: Calibri, sans-serif;
   font-size: 11pt;
   margin-bottom: 3pt;
-  color: #333333 !important;
 }
-b, strong { color: #222222 !important; }
-i, em { color: #333333 !important; }
+b, strong { font-weight: bold; }
+i, em { font-style: italic; }
 .divider {
-  border: none;
   border-top: 1pt solid #cccccc;
   margin: 14pt 0;
 }
@@ -488,24 +519,34 @@ i, em { color: #333333 !important; }
   margin-bottom: 14pt;
   background: #f9f9f9;
 }
-.user-section h2 { color: #2c3e50 !important; border-bottom-color: #3498db; }
-.assistant-section h2 { color: #0f3460 !important; border-bottom-color: #4ecca3; }
+.user-section h2 { border-bottom-color: #3498db; }
+.assistant-section h2 { border-bottom-color: #4ecca3; }
 .thinking-block {
   border-left: 3pt solid #6c3483;
   padding: 6pt 10pt;
   background: #faf5ff;
   margin: 6pt 0;
   font-size: 10pt;
-  color: #555555 !important;
 }
-table { border-collapse: collapse; width: 100%; margin: 6pt 0; }
-td, th { border: 1pt solid #dddddd; padding: 5pt 8pt; font-size: 10pt; color: #333333 !important; }
-th { background: #f4f4f4; font-weight: bold; }
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 6pt 0;
+}
+td, th {
+  border: 1pt solid #dddddd;
+  padding: 5pt 8pt;
+  font-size: 10pt;
+}
+th {
+  background: #f4f4f4;
+  font-weight: bold;
+}
 </style>
 </head>
-<body lang="EN-US" style="color:#333333; background:white;">
-<div class="WordSection1" style="color:#333333;">
-${darkBodyHTML}
+<body lang="EN-US">
+<div class="WordSection1">
+${bodyHTML}
 </div>
 </body>
 </html>`;
@@ -522,9 +563,6 @@ ${darkBodyHTML}
       '------=_NextPart_boundary--\r\n';
   }
 
-  // ============================================================
-  // Trigger download inside the page
-  // ============================================================
   async function downloadFile(content, filename, mimeType) {
     const tabs = await browser.tabs.query({ active: true, currentWindow: true });
     await browser.tabs.executeScript(tabs[0].id, {
@@ -547,13 +585,10 @@ ${darkBodyHTML}
     });
   }
 
-  // ============================================================
-  // DOWNLOAD MARKDOWN
-  // ============================================================
   downloadBtn.addEventListener('click', async () => {
     setStatus('Extracting...');
     try {
-      const { messages, options } = await getMarkdown();
+      const { messages, options } = await getMessages();
       const md = toMarkdown(messages, options);
       const filename = generateFilename(options, 'md');
       await downloadFile(md, filename, 'text/markdown;charset=utf-8');
@@ -563,32 +598,26 @@ ${darkBodyHTML}
     }
   });
 
-  // ============================================================
-  // DOWNLOAD DOC
-  // ============================================================
-  downloadDocxBtn.addEventListener('click', async () => {
-    setStatus('Extracting...');
-    try {
-      const { messages, options } = await getMarkdown();
-      const bodyHTML = toWordHTML(messages, options);
-      const fullDoc = generateWordDoc(bodyHTML);
-      const filename = generateFilename(options, 'doc');
+  if (downloadDocBtn) {
+    downloadDocBtn.addEventListener('click', async () => {
+      setStatus('Extracting...');
+      try {
+        const { messages, options } = await getMessages();
+        const bodyHTML = toWordHTML(messages, options);
+        const fullDoc = generateWordDoc(bodyHTML);
+        const filename = generateFilename(options, 'doc');
+        await downloadFile(fullDoc, filename, 'application/msword');
+        setStatus('✅ Downloaded ' + messages.length + ' messages as .doc');
+      } catch (err) {
+        setStatus('❌ ' + err.message, true);
+      }
+    });
+  }
 
-      await downloadFile(fullDoc, filename, 'application/msword');
-
-      setStatus('✅ Downloaded ' + messages.length + ' messages as .doc');
-    } catch (err) {
-      setStatus('❌ ' + err.message, true);
-    }
-  });
-
-  // ============================================================
-  // COPY TO CLIPBOARD
-  // ============================================================
   copyBtn.addEventListener('click', async () => {
     setStatus('Extracting...');
     try {
-      const { messages, options } = await getMarkdown();
+      const { messages, options } = await getMessages();
       const md = toMarkdown(messages, options);
       await navigator.clipboard.writeText(md);
       setStatus('✅ Copied ' + messages.length + ' messages!');
