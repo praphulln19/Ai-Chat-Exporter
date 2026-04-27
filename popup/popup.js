@@ -358,7 +358,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // Generate Word document - MHTML format
   // NO INDENTATION on MIME lines (critical!)
   // ============================================================
-  function generateWordDoc(bodyHTML) {
+function generateWordDoc(bodyHTML) {
+    // Force dark text by adding inline color to all tags in the body HTML
+    const darkBodyHTML = bodyHTML
+      .replace(/<p>/g, '<p style="color:#333333;">')
+      .replace(/<li>/g, '<li style="color:#333333;">')
+      .replace(/<h1>/g, '<h1 style="color:#1a1a2e;">')
+      .replace(/<h2>/g, '<h2 style="color:#2c3e50;">')
+      .replace(/<h3>/g, '<h3 style="color:#333333;">')
+      .replace(/<pre>/g, '<pre style="color:#333333; background:#f4f4f4;">')
+      .replace(/<code>/g, '<code style="color:#333333;">');
+
     const htmlContent = `<html xmlns:v="urn:schemas-microsoft-com:vml"
 xmlns:o="urn:schemas-microsoft-com:office:office"
 xmlns:w="urn:schemas-microsoft-com:office:word"
@@ -385,25 +395,34 @@ xmlns="http://www.w3.org/TR/REC-html40">
 @page WordSection1 {
   size: 8.5in 11.0in;
   margin: 1.0in 1.0in 1.0in 1.0in;
+  mso-page-orientation: portrait;
 }
 div.WordSection1 { page: WordSection1; }
 body {
   font-family: Calibri, sans-serif;
   font-size: 11pt;
   line-height: 1.5;
-  color: #333333;
+  color: #333333 !important;
+  mso-themecolor: text1;
+  background: white;
+}
+/* Force all text dark */
+body, p, li, span, div, td, th {
+  color: #333333 !important;
+  mso-style-textfill-fill-color: #333333;
 }
 p {
   margin: 0in;
   margin-bottom: 6pt;
   font-family: Calibri, sans-serif;
   font-size: 11pt;
+  color: #333333;
 }
 h1 {
   font-family: Calibri, sans-serif;
   font-size: 20pt;
   font-weight: bold;
-  color: #1a1a2e;
+  color: #1a1a2e !important;
   margin-top: 12pt;
   margin-bottom: 6pt;
 }
@@ -411,7 +430,7 @@ h2 {
   font-family: Calibri, sans-serif;
   font-size: 16pt;
   font-weight: bold;
-  color: #2c3e50;
+  color: #2c3e50 !important;
   margin-top: 12pt;
   margin-bottom: 4pt;
   border-bottom: 1pt solid #cccccc;
@@ -421,7 +440,7 @@ h3 {
   font-family: Calibri, sans-serif;
   font-size: 13pt;
   font-weight: bold;
-  color: #333333;
+  color: #333333 !important;
   margin-top: 10pt;
   margin-bottom: 4pt;
 }
@@ -434,22 +453,28 @@ pre {
   margin: 6pt 0;
   white-space: pre-wrap;
   word-wrap: break-word;
+  color: #333333 !important;
 }
 code {
   font-family: Consolas, monospace;
   font-size: 9pt;
+  color: #333333 !important;
 }
 .inline-code {
   font-family: Consolas, monospace;
   font-size: 9pt;
   background: #f0f0f0;
   padding: 1pt 3pt;
+  color: #333333 !important;
 }
 li {
   font-family: Calibri, sans-serif;
   font-size: 11pt;
   margin-bottom: 3pt;
+  color: #333333 !important;
 }
+b, strong { color: #222222 !important; }
+i, em { color: #333333 !important; }
 .divider {
   border: none;
   border-top: 1pt solid #cccccc;
@@ -457,35 +482,34 @@ li {
 }
 .metadata {
   font-size: 9pt;
-  color: #666666;
+  color: #666666 !important;
   border-left: 3pt solid #4ecca3;
   padding: 6pt 10pt;
   margin-bottom: 14pt;
   background: #f9f9f9;
 }
-.user-section h2 { color: #2c3e50; border-bottom-color: #3498db; }
-.assistant-section h2 { color: #0f3460; border-bottom-color: #4ecca3; }
+.user-section h2 { color: #2c3e50 !important; border-bottom-color: #3498db; }
+.assistant-section h2 { color: #0f3460 !important; border-bottom-color: #4ecca3; }
 .thinking-block {
   border-left: 3pt solid #6c3483;
   padding: 6pt 10pt;
   background: #faf5ff;
   margin: 6pt 0;
   font-size: 10pt;
-  color: #555555;
+  color: #555555 !important;
 }
 table { border-collapse: collapse; width: 100%; margin: 6pt 0; }
-td, th { border: 1pt solid #dddddd; padding: 5pt 8pt; font-size: 10pt; }
+td, th { border: 1pt solid #dddddd; padding: 5pt 8pt; font-size: 10pt; color: #333333 !important; }
 th { background: #f4f4f4; font-weight: bold; }
 </style>
 </head>
-<body lang="EN-US">
-<div class="WordSection1">
-${bodyHTML}
+<body lang="EN-US" style="color:#333333; background:white;">
+<div class="WordSection1" style="color:#333333;">
+${darkBodyHTML}
 </div>
 </body>
 </html>`;
 
-    // MHTML format - NO LEADING SPACES on these lines!
     return 'MIME-Version: 1.0\r\n' +
       'Content-Type: multipart/related; boundary="----=_NextPart_boundary"\r\n' +
       '\r\n' +
