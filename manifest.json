@@ -1,22 +1,27 @@
 {
   "manifest_version": 2,
   "name": "Outlier Chat Downloader",
-  "version": "1.0",
-  "description": "Download Outlier Model Playground chats as Markdown files.",
+  "version": "1.2",
+  "description": "Download chats from Outlier Playground, ChatGPT, and Claude as Markdown or Word files.",
   "icons": {
     "48": "icons/icon-96.png",
     "96": "icons/icon-96.png"
   },
   "permissions": [
     "activeTab",
-    "downloads"
+    "downloads",
+    "*://*.chatgpt.com/*",
+    "*://*.chat.openai.com/*",
+    "*://*.claude.ai/*",
+    "*://*.outlier.ai/*",
+    "*://*.dataannotation.tech/*"
   ],
   "browser_action": {
     "default_icon": {
       "48": "icons/icon-96.png",
       "96": "icons/icon-96.png"
     },
-    "default_title": "Download Chat as MD",
+    "default_title": "Download Chat",
     "default_popup": "popup/popup.html"
   }
 }

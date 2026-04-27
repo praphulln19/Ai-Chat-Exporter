@@ -3,6 +3,7 @@ body {
   margin: 0;
   padding: 0;
   min-width: 300px;
+  max-width: 360px;
   background: #1a1a2e;
   color: #e0e0e0;
 }
@@ -12,17 +13,22 @@ body {
 }
 
 h2 {
-  margin: 0 0 12px;
-  font-size: 16px;
+  margin: 0 0 14px;
+  font-size: 17px;
   text-align: center;
   color: #fff;
+  letter-spacing: 0.3px;
 }
 
 .options {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  background: #16213e;
+  border-radius: 8px;
+  border: 1px solid #2a2a4a;
 }
 
 .options label {
@@ -30,17 +36,36 @@ h2 {
   display: flex;
   align-items: center;
   gap: 6px;
+  cursor: pointer;
+}
+
+.options label:hover {
+  color: #fff;
+}
+
+.options input[type="checkbox"] {
+  accent-color: #4ecca3;
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
 }
 
 .options input[type="text"] {
   width: 100%;
-  padding: 4px 8px;
+  padding: 6px 8px;
   margin-top: 4px;
   border: 1px solid #333;
   border-radius: 4px;
-  background: #16213e;
+  background: #1a1a2e;
   color: #e0e0e0;
   font-size: 13px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.options input[type="text"]:focus {
+  border-color: #4ecca3;
 }
 
 button {
@@ -52,7 +77,11 @@ button {
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
-  transition: background 0.2s;
+  transition: background 0.2s, transform 0.1s;
+}
+
+button:active {
+  transform: scale(0.98);
 }
 
 #downloadBtn {
@@ -62,6 +91,15 @@ button {
 
 #downloadBtn:hover {
   background: #1a5276;
+}
+
+#downloadDocxBtn {
+  background: #1e6f50;
+  color: #fff;
+}
+
+#downloadDocxBtn:hover {
+  background: #28a06e;
 }
 
 #copyBtn {
@@ -76,15 +114,9 @@ button {
 #status {
   text-align: center;
   font-size: 12px;
-  margin-top: 8px;
-  min-height: 16px;
+  margin-top: 10px;
+  min-height: 18px;
   color: #4ecca3;
-}
-#downloadDocxBtn {
-  background: #1e6f50;
-  color: #fff;
-}
-
-#downloadDocxBtn:hover {
-  background: #28a06e;
+  font-weight: 500;
+  transition: color 0.2s;
 }
