@@ -1,15 +1,18 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="popup.css">
   <title>Chat Downloader</title>
 </head>
 <body>
   <div class="container">
+
     <h2>💬 Chat Downloader</h2>
 
     <div class="options">
+
       <label>
         <input type="checkbox" id="includeTimestamp" checked>
         Include timestamp in filename
@@ -25,17 +28,27 @@
         Include thinking process
       </label>
 
-      <label>
-        Filename prefix:
-        <input type="text" id="filenamePrefix" value="Model chat">
-      </label>
+      <!-- Filename prefix: separate div to fix layout -->
+      <div class="filename-row">
+        <label for="filenamePrefix">Filename prefix:</label>
+        <input
+          type="text"
+          id="filenamePrefix"
+          placeholder="Model chat"
+          value="Model chat"
+          spellcheck="false"
+          autocomplete="off"
+        >
+      </div>
+
     </div>
 
     <button id="downloadBtn">📥 Download .md</button>
     <button id="downloadDocxBtn">📄 Download .doc</button>
     <button id="copyBtn">📋 Copy to Clipboard</button>
 
-    <p id="status"></p>
+    <div id="status" role="status" aria-live="polite"></div>
+
   </div>
 
   <script src="popup.js"></script>

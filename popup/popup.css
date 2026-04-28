@@ -1,16 +1,33 @@
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+/* =====================================================
+   AI Chat Downloader - Popup Styles
+   ===================================================== */
+
+* {
+  box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   min-width: 300px;
   max-width: 360px;
   background: #1a1a2e;
   color: #e0e0e0;
+  -webkit-font-smoothing: antialiased;
 }
+
+/* =====================================================
+   Container
+   ===================================================== */
 
 .container {
   padding: 16px;
 }
+
+/* =====================================================
+   Heading
+   ===================================================== */
 
 h2 {
   margin: 0 0 14px;
@@ -19,6 +36,10 @@ h2 {
   color: #fff;
   letter-spacing: 0.3px;
 }
+
+/* =====================================================
+   Options Panel
+   ===================================================== */
 
 .options {
   display: flex;
@@ -37,19 +58,25 @@ h2 {
   align-items: center;
   gap: 6px;
   cursor: pointer;
+  color: #e0e0e0;
+  transition: color 0.2s;
+  user-select: none;
 }
 
 .options label:hover {
   color: #fff;
 }
 
+/* Checkbox */
 .options input[type="checkbox"] {
   accent-color: #4ecca3;
   width: 15px;
   height: 15px;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
+/* Text input (filename prefix) */
 .options input[type="text"] {
   width: 100%;
   padding: 6px 8px;
@@ -59,14 +86,22 @@ h2 {
   background: #1a1a2e;
   color: #e0e0e0;
   font-size: 13px;
-  box-sizing: border-box;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .options input[type="text"]:focus {
   border-color: #4ecca3;
+  box-shadow: 0 0 0 2px rgba(78, 204, 163, 0.15);
 }
+
+.options input[type="text"]::placeholder {
+  color: #666;
+}
+
+/* =====================================================
+   Buttons - Base
+   ===================================================== */
 
 button {
   width: 100%;
@@ -77,39 +112,77 @@ button {
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
-  transition: background 0.2s, transform 0.1s;
+  letter-spacing: 0.2px;
+  transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 button:active {
   transform: scale(0.98);
 }
 
+button:focus-visible {
+  box-shadow: 0 0 0 2px rgba(78, 204, 163, 0.5);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* =====================================================
+   Download Markdown Button
+   ===================================================== */
+
 #downloadBtn {
   background: #0f3460;
   color: #fff;
 }
 
-#downloadBtn:hover {
+#downloadBtn:hover:not(:disabled) {
   background: #1a5276;
+  box-shadow: 0 2px 8px rgba(15, 52, 96, 0.5);
 }
 
+/* =====================================================
+   Download DOC Button
+   (supports both #downloadDocBtn and #downloadDocxBtn)
+   ===================================================== */
+
+#downloadDocBtn,
 #downloadDocxBtn {
   background: #1e6f50;
   color: #fff;
 }
 
-#downloadDocxBtn:hover {
+#downloadDocBtn:hover:not(:disabled),
+#downloadDocxBtn:hover:not(:disabled) {
   background: #28a06e;
+  box-shadow: 0 2px 8px rgba(30, 111, 80, 0.5);
 }
+
+/* =====================================================
+   Copy Button
+   ===================================================== */
 
 #copyBtn {
   background: #533483;
   color: #fff;
 }
 
-#copyBtn:hover {
+#copyBtn:hover:not(:disabled) {
   background: #6c3fa0;
+  box-shadow: 0 2px 8px rgba(83, 52, 131, 0.5);
 }
+
+/* =====================================================
+   Status Message
+   ===================================================== */
 
 #status {
   text-align: center;
@@ -119,4 +192,47 @@ button:active {
   color: #4ecca3;
   font-weight: 500;
   transition: color 0.2s;
+  word-break: break-word;
+  line-height: 1.4;
 }
+
+/* =====================================================
+   Divider (optional utility)
+   ===================================================== */
+
+.divider {
+  height: 1px;
+  background: #2a2a4a;
+  margin: 10px 0;
+  border: none;
+}
+
+/* =====================================================
+   Scrollbar (Firefox)
+   ===================================================== */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2a2a4a #1a1a2e;
+}
+
+/* =====================================================
+   Filename Prefix Row
+   ===================================================== */
+
+.filename-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filename-row label {
+  font-size: 12px;
+  color: #aaa;
+  cursor: default;
+  user-select: none;
+}
+
+.filename-row label:hover {
+  color: #aaa;  /* override the .options label:hover white */
+} 

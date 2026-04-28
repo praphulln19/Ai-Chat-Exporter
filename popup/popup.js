@@ -761,12 +761,12 @@ document.addEventListener('DOMContentLoaded', function () {
     return temp.innerHTML;
   }
 
-  function inlineFormat(text) {
-    return escapeHTML(text)
-      .replace(/\*\*(.+?)\*\*/g, '<b>\$1</b>')
-      .replace(/\*(.+?)\*/g, '<i>\$1</i>')
-      .replace(/`(.+?)`/g, '<code style="font-family:Consolas,monospace;font-size:9pt;background:#f0f0f0;padding:1pt 3pt;color:#333333;">\$1</code>');
-  }
+    function inlineFormat(text) {
+      return escapeHTML(text)
+        .replace(/\*\*(.+?)\*\*/g, '<b>\$1</b>')
+        .replace(/\*(.+?)\*/g, '<i>\$1</i>')
+        .replace(/`(.+?)`/g, '<code style="font-family:Consolas,monospace;font-size:9pt;background:#f0f0f0;padding:1pt 3pt;color:#333333;">\$1</code>');
+    } 
 
   function formatContent(text) {
     var html = '';
@@ -863,9 +863,17 @@ document.addEventListener('DOMContentLoaded', function () {
   // ==========================================================
   // Generate Word document
   // ==========================================================
-  function generateWordDoc(bodyHTML) {
-    return '<!DOCTYPE html>\n<html xmlns:o="urn:schemas-microsoft-com:office:office"\nxmlns:w="urn:schemas-microsoft-com:office:word"\nxmlns="http://www.w3.org/TR/REC-html40">\n<head>\n<meta charset="utf-8">\n<meta name="ProgId" content="Word.Document">\n<meta name="Generator" content="Microsoft Word 15">\n<!--[if gte mso 9]>\n<xml>\n<w:WordDocument>\n<w:View>Print</w:View>\n<w:Zoom>100</w:Zoom>\n<w:DoNotOptimizeForBrowser/>\n</w:WordDocument>\n</xml>\n<![endif]-->\n<style>\n@page WordSection1 { size: 8.5in 11.0in; margin: 1.0in 1.0in 1.0in 1.0in; }\ndiv.WordSection1 { page: WordSection1; }\nbody { font-family: Calibri, sans-serif; font-size: 11pt; line-height: 1.5; color: #333333; background: white; }\nbody, p, li, span, div, td, th { color: #333333 !important; }\np { margin: 0 0 6pt 0; font-size: 11pt; }\nh1 { font-size: 20pt; font-weight: bold; color: #1a1a2e !important; margin: 12pt 0 6pt 0; }\nh2 { font-size: 16pt; font-weight: bold; color: #2c3e50 !important; margin: 12pt 0 4pt 0; border-bottom: 1pt solid #cccccc; padding-bottom: 4pt; }\nh3 { font-size: 13pt; font-weight: bold; color: #333333 !important; margin: 10pt 0 4pt 0; }\npre { font-family: Consolas, monospace; font-size: 9pt; background: #f4f4f4; border: 1pt solid #dddddd; padding: 8pt; margin: 6pt 0; white-space: pre-wrap; word-wrap: break-word; color: #333333 !important; }\ncode { font-family: Consolas, monospace; font-size: 9pt; color: #333333 !important; }\nul, ol { margin: 6pt 0 6pt 18pt; }\nli { font-size: 11pt; margin-bottom: 3pt; color: #333333 !important; }\nb, strong { font-weight: bold; color: #222222 !important; }\ni, em { font-style: italic; color: #333333 !important; }\n.divider { border-top: 1pt solid #cccccc; margin: 14pt 0; }\n.metadata { font-size: 9pt; color: #666666 !important; border-left: 3pt solid #4ecca3; padding: 6pt 10pt; margin-bottom: 14pt; background: #f9f9f9; }\n.user-section h2 { border-bottom-color: #3498db; }\n.assistant-section h2 { border-bottom-color: #4ecca3; }\n.thinking-block { border-left: 3pt solid #6c3483; padding: 6pt 10pt; background: #faf5ff; margin: 6pt 0; font-size: 10pt; color: #555555 !important; }\ntable { border-collapse: collapse; width: 100%; margin: 6pt 0; }\ntd, th { border: 1pt solid #dddddd; padding: 5pt 8pt; font-size: 10pt; color: #333333 !important; }\nth { background: #f4f4f4; font-weight: bold; }\na { color: #2980b9 !important; text-decoration: underline; }\n</style>\n</head>\n<body lang="EN-US" style="color:#333333;background:white;">\n<div class="WordSection1" style="color:#333333;">\n' + bodyHTML + '\n</div>\n</body>\n</html>';
-  }
+      function generateWordDoc(bodyHTML) {
+        return '<!DOCTYPE html>\n<html xmlns:o="urn:schemas-microsoft-com:office:office"\nxmlns:w="urn:schemas-microsoft-com:office:word"\nxmlns="http://www.w3.org/TR/REC-html40">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">\n<meta name="ProgId" content="Word.Document">\n<meta name="Generator" content="Microsoft Word 15">\n<!--[if gte mso 9]>\n<xml>\n<w:WordDocument>\n<w:View>Print</w:View>\n<w:Zoom>100</w:Zoom>\n<w:DoNotOptimizeForBrowser/>\n</w:WordDocument>\n</xml>\n<![endif]-->\n<style>\n@page WordSection1 { size: 210mm 297mm; margin: 25.4mm 25.4mm 25.4mm 25.4mm; }\ndiv.WordSection1 { page: WordSection1; max-width: 210mm; margin: 0 auto; }\n'
+
+        // ✅ CHANGED: removed -webkit-text-size-adjust: 100%
+        // ✅ ADDED: html-level zoom anchoring and box-sizing reset
+        + 'html { font-size: 100%; zoom: 1; }\n* { box-sizing: border-box; }\nbody { font-family: Calibri, sans-serif; font-size: 11pt; line-height: 1.5; color: #333333; background: white; }\n'
+
+        + 'body, p, li, span, div, td, th { color: #333333 !important; }\np { margin: 0 0 6pt 0; font-size: 11pt; }\nh1 { font-size: 20pt; font-weight: bold; color: #1a1a2e !important; margin: 12pt 0 6pt 0; }\nh2 { font-size: 16pt; font-weight: bold; color: #2c3e50 !important; margin: 12pt 0 4pt 0; border-bottom: 1pt solid #cccccc; padding-bottom: 4pt; }\nh3 { font-size: 13pt; font-weight: bold; color: #333333 !important; margin: 10pt 0 4pt 0; }\npre { font-family: Consolas, monospace; font-size: 9pt; background: #f4f4f4; border: 1pt solid #dddddd; padding: 8pt; margin: 6pt 0; white-space: pre-wrap; word-wrap: break-word; color: #333333 !important; }\ncode { font-family: Consolas, monospace; font-size: 9pt; color: #333333 !important; }\nul, ol { margin: 6pt 0 6pt 18pt; }\nli { font-size: 11pt; margin-bottom: 3pt; color: #333333 !important; }\nb, strong { font-weight: bold; color: #222222 !important; }\ni, em { font-style: italic; color: #333333 !important; }\n.divider { border-top: 1pt solid #cccccc; margin: 14pt 0; }\n.metadata { font-size: 9pt; color: #666666 !important; border-left: 3pt solid #4ecca3; padding: 6pt 10pt; margin-bottom: 14pt; background: #f9f9f9; }\n.user-section h2 { border-bottom-color: #3498db; }\n.assistant-section h2 { border-bottom-color: #4ecca3; }\n.thinking-block { border-left: 3pt solid #6c3483; padding: 6pt 10pt; background: #faf5ff; margin: 6pt 0; font-size: 10pt; color: #555555 !important; }\ntable { border-collapse: collapse; width: 100%; margin: 6pt 0; }\ntd, th { border: 1pt solid #dddddd; padding: 5pt 8pt; font-size: 10pt; color: #333333 !important; }\nth { background: #f4f4f4; font-weight: bold; }\na { color: #2980b9 !important; text-decoration: underline; }\n@media screen { div.WordSection1 { padding: 20px; } }\n@media print { div.WordSection1 { max-width: 100%; } }\n</style>\n</head>\n<body lang="EN-US" style="color:#333333;background:white;">\n<div class="WordSection1" style="color:#333333;">\n'
+        + bodyHTML
+        + '\n</div>\n</body>\n</html>';
+      }
 
   // ==========================================================
   // Download helper
