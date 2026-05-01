@@ -56,7 +56,7 @@ Each platform has **4 fallback extraction strategies** to handle DOM changes and
 
 ### Method 1: Install from Firefox Add-ons (Recommended)
 
-1. Visit the [AI Chat Downloader page on AMO]https://addons.mozilla.org/en-US/firefox/addon/ai-chat-saver/)
+1. Visit the [AI Chat Downloader page on AMO](https://addons.mozilla.org/en-US/firefox/addon/ai-chat-saver/)
 2. Click **Add to Firefox**
 3. The extension icon will appear in your toolbar 🎉
 
