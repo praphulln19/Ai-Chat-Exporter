@@ -9,6 +9,58 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (filenamePrefixInput) filenamePrefixInput.value = 'Model chat';
 
+  var ext = (typeof browser !== 'undefined' && browser.runtime && browser.runtime.id) ? browser : chrome;
+
+  function queryActiveTab() {
+    if (ext.tabs.query.length === 1) return ext.tabs.query({ active: true, currentWindow: true });
+    return new Promise(function (resolve, reject) {
+      ext.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        var err = ext.runtime && ext.runtime.lastError;
+        if (err) reject(new Error(err.message));
+        else resolve(tabs);
+      });
+    });
+  }
+
+  function executeInTab(tabId, func, args) {
+    if (ext.scripting && ext.scripting.executeScript) {
+      if (ext.scripting.executeScript.length === 1) {
+        return ext.scripting.executeScript({ target: { tabId: tabId }, func: func, args: args || [] });
+      }
+      return new Promise(function (resolve, reject) {
+        ext.scripting.executeScript({ target: { tabId: tabId }, func: func, args: args || [] }, function (results) {
+          var err = ext.runtime && ext.runtime.lastError;
+          if (err) reject(new Error(err.message));
+          else resolve(results);
+        });
+      });
+    }
+
+    if (ext.tabs && ext.tabs.executeScript) {
+      var code = '(' + func.toString() + ')(' + JSON.stringify((args && args[0]) || false) + ')';
+      if (ext.tabs.executeScript.length === 2) {
+        return new Promise(function (resolve, reject) {
+          ext.tabs.executeScript(tabId, { code: code }, function (results) {
+            var err = ext.runtime && ext.runtime.lastError;
+            if (err) reject(new Error(err.message));
+            else resolve(results);
+          });
+        });
+      }
+      return ext.tabs.executeScript(tabId, { code: code });
+    }
+
+    return Promise.reject(new Error('Script injection API not available.'));
+  }
+
+  function getExecuteResult(results) {
+    if (Array.isArray(results)) {
+      if (results.length > 0 && results[0] && typeof results[0] === 'object' && 'result' in results[0]) return results[0].result;
+      return results[0];
+    }
+    return results;
+  }
+
   function getOptions() {
     return {
       includeTimestamp: document.getElementById('includeTimestamp').checked,
@@ -34,14 +86,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function getMessages() {
     var options = getOptions();
-    return browser.tabs.query({ active: true, currentWindow: true })
+    return queryActiveTab()
       .then(function (tabs) {
-        return browser.tabs.executeScript(tabs[0].id, {
-          code: '(' + extractionScript.toString() + ')(' + JSON.stringify(options.includeThinking) + ')'
-        });
+        if (!tabs || !tabs[0] || typeof tabs[0].id === 'undefined') throw new Error('No active tab found.');
+        return executeInTab(tabs[0].id, extractionScript, [options.includeThinking]);
       })
       .then(function (results) {
-        var result = results[0];
+        var result = getExecuteResult(results);
         if (!result || !result.success) throw new Error(result ? result.error : 'Failed to extract.');
         if (!result.messages || result.messages.length === 0) throw new Error('No messages found on this page.');
         return { messages: result.messages, options: options };
