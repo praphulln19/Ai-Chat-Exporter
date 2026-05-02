@@ -2,7 +2,7 @@
 
 # 💬 AI Chat Downloader
 
-### A Firefox Extension to Download AI Chat Conversations
+### A Firefox + Chrome Extension to Download AI Chat Conversations
 
 [![Firefox Add-on](https://img.shields.io/badge/Firefox-Add--on-FF7139?style=for-the-badge&logo=firefox-browser&logoColor=white)](https://addons.mozilla.org/en-US/firefox/addon/ai-chat-downloader-tool/)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
@@ -79,6 +79,19 @@ Each platform has **4 fallback extraction strategies** to handle DOM changes and
 
 **Note:** Temporary add-ons are removed when you close Firefox. Use Method 1 for permanent installation.
 
+### Method 3: Load Unpacked in Chrome (Development)
+
+1. Open Chrome and navigate to:
+
+   ```text
+   chrome://extensions
+   ```
+
+2. Enable **Developer mode** (top-right)
+3. Click **Load unpacked**
+4. Select the extension folder (the one containing `manifest.json`)
+5. The extension icon will appear in your toolbar 🎉
+
 ---
 
 ## 🚀 Usage
@@ -130,6 +143,7 @@ The `.doc` file opens with:
 | Permission | Why it's needed |
 |---|---|
 | `activeTab` | Read the current page to extract chat messages — only when you click the icon |
+| `scripting` | Inject the extraction script using Manifest V3 APIs |
 
 That's the only permission. No downloads, no host permissions, no background scripts.
 
@@ -155,7 +169,7 @@ Your conversations stay on your machine. Period.
 ```text
 ai-chat-downloader/
 │
-├── 📄 manifest.json          # Extension manifest (v2, Firefox)
+├── 📄 manifest.json          # Extension manifest (v3, Chrome + Firefox)
 │
 ├── 📁 popup/
 │   ├── 📄 popup.html         # Extension popup UI
@@ -223,7 +237,12 @@ This project is licensed under the MIT License.
 
 ## 📝 Release Notes
 
-### v1.3 (Current)
+### v1.4 (Current)
+
+- Migrated to Manifest V3 for Chrome + Firefox compatibility
+- Added MV3 scripting injection path (no behavior changes)
+
+### v1.3
 
 - Fixed Word (.doc) export — removed MHTML wrapper, now uses clean HTML that Word reliably opens
 - Added UTF-8 BOM for proper encoding in Word
