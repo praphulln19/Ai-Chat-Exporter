@@ -597,12 +597,14 @@ document.addEventListener('DOMContentLoaded', function () {
             var b = bodies[i];
             var t = (b.innerText || '').trim();
             if (t) texts.push(t);
-            var h = normalizeHTML(b).trim();
+
+            // Use innerHTML directly instead of normalizeHTML
+            var h = (b.innerHTML || '').trim();
             if (h) htmls.push(h);
           }
           return {
             text: texts.join('\n\n'),
-            html: htmls.join('\n')
+            html: htmls.join('<br>')
           };
         }
 
