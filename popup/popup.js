@@ -499,76 +499,231 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       // =====================================================
-      // CLAUDE (keeping existing logic)
+      // CLAUDE (FIXED - groups multi-body assistant responses)
+      // User:      [data-testid="user-message"]
+      // Assistant: .font-claude-response (turn container)
+      //            contains multiple .font-claude-response-body chunks
       // =====================================================
       else if (url.indexOf('claude.ai') !== -1) {
-        // Scroll to load all messages
-        var claudeScroll = findChatGPTScrollContainer(); // reuse same finder
-        claudeScroll.scrollTop = 0;
-        await wait(500);
-        var lastH = claudeScroll.scrollHeight, sameCnt = 0;
-        for (var ci = 0; ci < 20; ci++) {
-          claudeScroll.scrollTop = 0;
-          await wait(400);
-          var newH = claudeScroll.scrollHeight;
-          if (newH === lastH) { sameCnt++; if (sameCnt >= 3) break; }
-          else { sameCnt = 0; lastH = newH; }
+
+        // Guard: must be on a real conversation page
+        if (url.indexOf('/chat/') === -1 && url.indexOf('/project/') === -1) {
+          return {
+            success: false,
+            error: 'Please open an existing Claude conversation (URL must contain /chat/).'
+          };
         }
+
+        // Find the assistant turn container (.font-claude-response) for a body
+        function findClaudeTurnContainer(bodyEl) {
+          var cur = bodyEl;
+          for (var i = 0; i < 15 && cur; i++) {
+            if (cur.classList && cur.classList.contains('font-claude-response')) {
+              return cur;
+            }
+            cur = cur.parentElement;
+          }
+          // Fallback: walk up looking for a copy action bar
+          cur = bodyEl;
+          for (var j = 0; j < 10 && cur && cur.parentElement; j++) {
+            cur = cur.parentElement;
+            if (cur.querySelector && cur.querySelector('[data-testid="action-bar-copy"]')) {
+              return cur;
+            }
+          }
+          return bodyEl.parentElement || bodyEl;
+        }
+
+        // Group body chunks by their turn container
+        function getClaudeAssistantTurns() {
+          var allBodies = Array.from(document.querySelectorAll('.font-claude-response-body'));
+          if (allBodies.length === 0) {
+            // Fallback: use .font-claude-response directly as single-body turns
+            var fallbackTurns = Array.from(document.querySelectorAll('.font-claude-response'));
+            return fallbackTurns.map(function (c) { return { container: c, bodies: [c] }; });
+          }
+
+          var turnMap = new Map();
+          for (var i = 0; i < allBodies.length; i++) {
+            var b = allBodies[i];
+            var container = findClaudeTurnContainer(b);
+            if (!turnMap.has(container)) turnMap.set(container, []);
+            turnMap.get(container).push(b);
+          }
+
+          var turns = [];
+          turnMap.forEach(function (bodies, container) {
+            bodies.sort(function (x, y) { return domOrder(x, y); });
+            turns.push({ container: container, bodies: bodies });
+          });
+          turns.sort(function (a, b) { return domOrder(a.container, b.container); });
+          return turns;
+        }
+
+        // Walk React fiber to find rich message data (fallback)
+        function getClaudeFiberText(el) {
+          if (!el) return null;
+          var fKey = getFiberKey(el);
+          if (!fKey || !el[fKey]) return null;
+          var cur = el[fKey];
+          for (var i = 0; i < 25; i++) {
+            if (!cur) break;
+            var mp = cur.memoizedProps;
+            if (mp) {
+              if (typeof mp.markdown === 'string' && mp.markdown.length > 5) return mp.markdown;
+              if (mp.message && typeof mp.message === 'object') {
+                var m = mp.message;
+                if (typeof m.text === 'string' && m.text.length > 0) return m.text;
+                if (Array.isArray(m.content)) {
+                  var parts = [];
+                  for (var j = 0; j < m.content.length; j++) {
+                    var c = m.content[j];
+                    if (typeof c === 'string') parts.push(c);
+                    else if (c && typeof c.text === 'string') parts.push(c.text);
+                  }
+                  if (parts.length > 0) return parts.join('\n\n');
+                }
+              }
+            }
+            cur = cur.return;
+          }
+          return null;
+        }
+
+        // Combine multiple body chunks into one message
+        function combineClaudeBodies(bodies) {
+          var texts = [], htmls = [];
+          for (var i = 0; i < bodies.length; i++) {
+            var b = bodies[i];
+            var t = (b.innerText || '').trim();
+            if (t) texts.push(t);
+            var h = normalizeHTML(b).trim();
+            if (h) htmls.push(h);
+          }
+          return {
+            text: texts.join('\n\n'),
+            html: htmls.join('\n')
+          };
+        }
+
+        var claudeScroll = findChatGPTScrollContainer();
+        var claudeCollected = [];
+        var claudeSeen = {};
+        var claudeOrder = 0;
+
+        function claudeFingerprint(text) {
+          var t = (text || '').trim();
+          return t.length <= 300 ? t : t.substring(0, 200) + '|||' + t.substring(t.length - 100);
+        }
+
+        function addClaudeMsg(role, content, html, anchor) {
+          if (!content || content.trim().length < 1) return;
+          var key = role + '::' + claudeFingerprint(content);
+          if (claudeSeen[key]) return;
+          claudeSeen[key] = true;
+          claudeCollected.push({
+            role: role,
+            content: content.trim(),
+            html: (html || content).trim(),
+            _anchor: anchor,
+            _order: claudeOrder++
+          });
+        }
+
+        function collectClaudeNow() {
+          // 1) USER messages
+          var userEls = document.querySelectorAll('[data-testid="user-message"]');
+          for (var u = 0; u < userEls.length; u++) {
+            var uEl = userEls[u];
+            var uContentEl = uEl.querySelector('.whitespace-pre-wrap') || uEl;
+            var uText = (uContentEl.innerText || '').trim();
+            var uHTML = normalizeHTML(uContentEl).trim();
+            var uFiberText = getClaudeFiberText(uEl);
+            if (uFiberText && uFiberText.length > uText.length) uText = uFiberText;
+            addClaudeMsg('user', uText, uHTML, uEl);
+          }
+
+          // 2) ASSISTANT messages — grouped multi-body turns
+          var turns = getClaudeAssistantTurns();
+          for (var t = 0; t < turns.length; t++) {
+            var turn = turns[t];
+            var combined = combineClaudeBodies(turn.bodies);
+
+            var fiberText = null;
+            if (turn.bodies.length > 0) fiberText = getClaudeFiberText(turn.bodies[0]);
+            if (!fiberText) fiberText = getClaudeFiberText(turn.container);
+
+            var finalText = combined.text;
+            if (fiberText && fiberText.length > combined.text.length * 1.1) {
+              finalText = fiberText;
+            }
+
+            addClaudeMsg('assistant', finalText, combined.html, turn.container);
+          }
+        }
+
+        // Scroll to top to load history
+        claudeScroll.scrollTop = 0;
+        claudeScroll.dispatchEvent(new Event('scroll', { bubbles: true }));
+        await wait(600);
+
+        var lastH = claudeScroll.scrollHeight;
+        var sameCnt = 0;
+        for (var ci = 0; ci < 30; ci++) {
+          claudeScroll.scrollTop = 0;
+          claudeScroll.dispatchEvent(new Event('scroll', { bubbles: true }));
+          await wait(450);
+          collectClaudeNow();
+          var newH = claudeScroll.scrollHeight;
+          if (newH === lastH) {
+            sameCnt++;
+            if (sameCnt >= 3) break;
+          } else {
+            sameCnt = 0;
+            lastH = newH;
+          }
+        }
+
+        // Scroll downward to render all
         var cStep = Math.max(500, Math.floor(claudeScroll.clientHeight * 0.7));
         var cPos = 0;
         while (cPos < claudeScroll.scrollHeight) {
           claudeScroll.scrollTop = cPos;
-          await wait(150);
+          claudeScroll.dispatchEvent(new Event('scroll', { bubbles: true }));
+          await wait(180);
+          collectClaudeNow();
           cPos += cStep;
         }
-        claudeScroll.scrollTop = claudeScroll.scrollHeight;
-        await wait(300);
 
-        var fieldsets = sortEls(document.querySelectorAll('fieldset'));
-        fieldsets.forEach(function (fs) {
-          var legend = fs.querySelector('legend');
-          if (!legend) return;
-          var legendText = (legend.innerText || legend.textContent || '').toLowerCase().trim();
-          var contentEl = fs.querySelector('[class*="prose"]') || fs.querySelector('[class*="markdown"]') || fs.querySelector('[class*="grid"]') || fs;
-          if (legendText.indexOf('you') !== -1 || legendText.indexOf('human') !== -1 || legendText.indexOf('user') !== -1) addMsg('user', contentEl);
-          else if (legendText.indexOf('claude') !== -1 || legendText.indexOf('assistant') !== -1) addMsg('assistant', contentEl);
+        // Final pass at bottom
+        claudeScroll.scrollTop = claudeScroll.scrollHeight;
+        claudeScroll.dispatchEvent(new Event('scroll', { bubbles: true }));
+        await wait(400);
+        collectClaudeNow();
+
+        // Re-sort by DOM order using anchors
+        claudeCollected.sort(function (a, b) {
+          if (a._anchor && b._anchor && document.contains(a._anchor) && document.contains(b._anchor)) {
+            return domOrder(a._anchor, b._anchor);
+          }
+          return a._order - b._order;
         });
 
-        if (messages.length === 0) {
-          var claudeSelectors = [
-            { sel: '[data-testid="human-turn"]', role: 'user' },
-            { sel: '[data-testid="ai-turn"]', role: 'assistant' },
-            { sel: '[data-testid*="human"]', role: 'user' },
-            { sel: '[data-testid*="ai"]', role: 'assistant' }
-          ];
-          var candidates = [];
-          claudeSelectors.forEach(function (group) {
-            var els = document.querySelectorAll(group.sel);
-            for (var k = 0; k < els.length; k++) {
-              if (isVisible(els[k])) candidates.push({ el: els[k], role: group.role });
-            }
-          });
-          var filtered = candidates.filter(function (c, idx) {
-            return !candidates.some(function (other, oidx) { return oidx !== idx && other.el !== c.el && other.el.contains(c.el); });
-          });
-          filtered.sort(function (a, b) { return domOrder(a.el, b.el); });
-          filtered.forEach(function (item) {
-            addMsg(item.role, item.el.querySelector('[class*="prose"]') || item.el.querySelector('[class*="markdown"]') || item.el);
-          });
+        for (var m = 0; m < claudeCollected.length; m++) {
+          delete claudeCollected[m]._anchor;
+          delete claudeCollected[m]._order;
         }
 
+        if (claudeCollected.length > 0) {
+          messages = claudeCollected;
+        }
+
+        // Last-resort fallback
         if (messages.length === 0) {
-          var mainEl = document.querySelector('main') || document.querySelector('[role="main"]');
-          if (mainEl) {
-            var convContainer = mainEl.querySelector('[class*="conversation"]') || mainEl.querySelector('[class*="chat"]') || mainEl;
-            Array.from(convContainer.children).filter(function (c) { return c.tagName === 'DIV' && isVisible(c); }).forEach(function (div, di) {
-              var guessRole = di % 2 === 0 ? 'user' : 'assistant';
-              var ic = (div.className || '').toLowerCase();
-              if (ic.indexOf('human') !== -1 || ic.indexOf('user') !== -1) guessRole = 'user';
-              if (ic.indexOf('assistant') !== -1 || ic.indexOf('claude') !== -1) guessRole = 'assistant';
-              if ((div.innerText || '').trim().length > 1) addMsg(guessRole, div.querySelector('[class*="prose"]') || div.querySelector('[class*="markdown"]') || div);
-            });
-          }
+          var fallbackUsers = sortEls(document.querySelectorAll('[data-testid="user-message"]'));
+          fallbackUsers.forEach(function (el) { addMsg('user', el); });
+          var fallbackResponses = sortEls(document.querySelectorAll('.font-claude-response'));
+          fallbackResponses.forEach(function (el) { addMsg('assistant', el); });
         }
       }
 
