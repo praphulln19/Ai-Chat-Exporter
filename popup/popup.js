@@ -957,6 +957,21 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
 
+    // Add explicit numbering to ordered lists for Word compatibility
+    var orderedLists = temp.querySelectorAll('ol');
+    for (var ol = 0; ol < orderedLists.length; ol++) {
+      var listItems = orderedLists[ol].querySelectorAll(':scope > li');
+      for (var li = 0; li < listItems.length; li++) {
+        var liText = listItems[li].textContent || '';
+        var numberMatch = liText.match(/^\d+\.\s/);
+        if (!numberMatch) {
+          var num = li + 1;
+          var newHtml = num + '. ' + listItems[li].innerHTML;
+          listItems[li].innerHTML = newHtml;
+        }
+      }
+    }
+
     var lists = temp.querySelectorAll('ul,ol');
     for (var l = 0; l < lists.length; l++) lists[l].setAttribute('style', 'margin:6pt 0 6pt 18pt;color:#333333;');
 
@@ -1009,7 +1024,10 @@ document.addEventListener('DOMContentLoaded', function () {
       else if (/^\d+\.\s/.test(trimmed)) {
         if (inUL) { html += '</ul>'; inUL = false; }
         if (!inOL) { html += '<ol style="margin:6pt 0 6pt 18pt;color:#333333;">'; inOL = true; }
-        html += '<li style="color:#333333;">' + inlineFormat(trimmed.replace(/^\d+\.\s/, '')) + '</li>';
+        var numMatch = trimmed.match(/^(\d+)\.\s/);
+        var itemNum = numMatch ? numMatch[1] + '. ' : '';
+        var itemText = trimmed.replace(/^\d+\.\s/, '');
+        html += '<li style="color:#333333;">' + inlineFormat(itemNum + itemText) + '</li>';
       }
       else if (trimmed === '') { closeLists(); html += '<br>'; }
       else { closeLists(); html += '<p style="color:#333333;">' + inlineFormat(trimmed) + '</p>'; }
