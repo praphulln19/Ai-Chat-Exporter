@@ -964,10 +964,10 @@ document.addEventListener('DOMContentLoaded', function () {
       for (var li = 0; li < listItems.length; li++) {
         var liText = listItems[li].textContent || '';
         var numberMatch = liText.match(/^\d+\.\s/);
-        if (!numberMatch) {
+          if (!numberMatch) {
           var num = li + 1;
-          var newHtml = num + '. ' + listItems[li].innerHTML;
-          listItems[li].innerHTML = newHtml;
+          var prefix = temp.ownerDocument.createTextNode(num + '. ');
+          listItems[li].insertBefore(prefix, listItems[li].firstChild);
         }
       }
     }
