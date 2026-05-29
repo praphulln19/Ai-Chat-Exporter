@@ -758,6 +758,128 @@ document.addEventListener('DOMContentLoaded', function () {
           });
         }
       }
+      // =====================================================
+      // GITHUB COPILOT  (github.com/copilot)
+      // Confirmed CSS module class names (from DOM inspection):
+      //   User turn:      UserMessage-module__container__xxxx
+      //   Assistant turn: ChatMessage-module__ai__xxxx   (NOT AssistantMessage!)
+      //   Content area:   ChatMessage-module__content__xxxx
+      //   Markdown body:  markdown-body MarkdownRenderer-module__container__xxxx
+      // =====================================================
+      else if (url.indexOf('github.com/copilot') !== -1 || url.indexOf('github.com/c/') !== -1) {
+
+        function copilotGetScrollContainer() {
+          var byModule = document.querySelector('[class*="ChatScrollContainer-module__container"]');
+          if (byModule) return byModule;
+          var allEls = document.querySelectorAll('*');
+          var best = null, bestDiff = 0;
+          for (var i = 0; i < allEls.length; i++) {
+            var s = window.getComputedStyle(allEls[i]);
+            var oy = s.overflowY;
+            if ((oy === 'auto' || oy === 'scroll') && allEls[i].scrollHeight > allEls[i].clientHeight + 100) {
+              var diff = allEls[i].scrollHeight - allEls[i].clientHeight;
+              if (diff > bestDiff) { bestDiff = diff; best = allEls[i]; }
+            }
+          }
+          return best || document.scrollingElement || document.documentElement;
+        }
+
+        function collectCopilotNow(collected, seenKeys, orderRef) {
+          // USER: confirmed selector
+          var userEls = Array.from(document.querySelectorAll('[class*="UserMessage-module__container"]'));
+
+          // ASSISTANT: confirmed selector — ChatMessage-module__ai (not "AssistantMessage")
+          var assistantEls = Array.from(document.querySelectorAll('[class*="ChatMessage-module__ai"]'));
+
+          function getBestContentEl(el) {
+            // Look inside ChatMessage-module__content for the markdown-body
+            var contentDiv = el.querySelector('[class*="ChatMessage-module__content"]');
+            if (contentDiv) {
+              var md = contentDiv.querySelector('.markdown-body, [class*="MarkdownRenderer-module__container"]');
+              if (md && (md.innerText || '').trim().length > 10) return md;
+              return contentDiv;
+            }
+            var mdDirect = el.querySelector('.markdown-body, [class*="MarkdownRenderer-module__container"]');
+            if (mdDirect && (mdDirect.innerText || '').trim().length > 10) return mdDirect;
+            return el;
+          }
+
+          function addCopilot(role, el) {
+            if (!el) return;
+            var targetEl = (role === 'assistant') ? getBestContentEl(el) : el;
+            var txt = (targetEl.innerText || '').trim();
+            if (txt.length < 2) return;
+            var fp = txt.length <= 300 ? txt : txt.substring(0, 200) + '|||' + txt.substring(txt.length - 100);
+            var key = role + '::' + fp;
+            if (seenKeys[key]) return;
+            seenKeys[key] = true;
+            var html = normalizeHTML(targetEl).trim();
+            collected.push({ role: role, content: txt, html: html, _order: orderRef.idx++ });
+          }
+
+          function filterLeaves(els) {
+            return els.filter(function (el) {
+              return !els.some(function (other) { return other !== el && other.contains(el); });
+            });
+          }
+
+          sortEls(filterLeaves(userEls)).forEach(function (el) { addCopilot('user', el); });
+          sortEls(filterLeaves(assistantEls)).forEach(function (el) { addCopilot('assistant', el); });
+        }
+
+        var copilotScroll = copilotGetScrollContainer();
+        var copilotCollected = [];
+        var copilotSeen = {};
+        var copilotOrderRef = { idx: 0 };
+
+        copilotScroll.scrollTop = 0;
+        await wait(500);
+        var lastH = copilotScroll.scrollHeight;
+        var sameCnt = 0;
+        for (var ci = 0; ci < 20; ci++) {
+          copilotScroll.scrollTop = 0;
+          await wait(400);
+          collectCopilotNow(copilotCollected, copilotSeen, copilotOrderRef);
+          var newH = copilotScroll.scrollHeight;
+          if (newH === lastH) { sameCnt++; if (sameCnt >= 3) break; }
+          else { sameCnt = 0; lastH = newH; }
+        }
+
+        var cStep = Math.max(500, Math.floor(copilotScroll.clientHeight * 0.7));
+        var cPos = 0;
+        while (cPos < copilotScroll.scrollHeight) {
+          copilotScroll.scrollTop = cPos;
+          await wait(150);
+          collectCopilotNow(copilotCollected, copilotSeen, copilotOrderRef);
+          cPos += cStep;
+        }
+        copilotScroll.scrollTop = copilotScroll.scrollHeight;
+        await wait(400);
+        collectCopilotNow(copilotCollected, copilotSeen, copilotOrderRef);
+
+        copilotCollected.sort(function (a, b) { return a._order - b._order; });
+        copilotCollected.forEach(function (m) { delete m._order; });
+
+        if (copilotCollected.length > 0) {
+          messages = copilotCollected;
+        }
+
+        // Last-resort DOM walk
+        if (messages.length === 0) {
+          var lcChildren = Array.from(copilotScroll.querySelectorAll('*'));
+          for (var i = 0; i < lcChildren.length; i++) {
+            var child = lcChildren[i];
+            var cls = (child.className || '').toString();
+            var txt = (child.innerText || '').trim();
+            if (txt.length < 2) continue;
+            if (cls.indexOf('UserMessage-module__container') !== -1) addMsg('user', child);
+            else if (cls.indexOf('ChatMessage-module__ai') !== -1) {
+              var mdEl = child.querySelector('.markdown-body, [class*="MarkdownRenderer-module__container"]') || child;
+              addMsg('assistant', mdEl);
+            }
+          }
+        }
+      }
 
       // =====================================================
       // GENERIC FALLBACK
@@ -771,7 +893,10 @@ document.addEventListener('DOMContentLoaded', function () {
           { sel: '[class*="user-message"]', role: 'user' },
           { sel: '[class*="assistant-message"]', role: 'assistant' },
           { sel: '[class*="bot-message"]', role: 'assistant' },
-          { sel: '[class*="ai-message"]', role: 'assistant' }
+          { sel: '[class*="ai-message"]', role: 'assistant' },
+          { sel: '[class*="UserMessage-module__container"]', role: 'user' },
+          { sel: '[class*="AssistantMessage-module__container"]', role: 'assistant' },
+          { sel: '[class*="CopilotMessage-module__container"]', role: 'assistant' }
         ];
         var fallbackFound = [];
         fallbackSelectors.forEach(function (s) {
@@ -796,6 +921,79 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ==========================================================
+  // ==========================================================
+  // Diagnostic: DOM structure inspector for Copilot
+  // Returns a lightweight summary of common chat selectors, a likely
+  // scroll container, and a few candidate message elements.
+  function inspectDomStructure() {
+    function shortHtml(el, n) {
+      try {
+        if (!el) return '';
+        var s = el.outerHTML || el.innerHTML || '';
+        return s.slice(0, n || 300);
+      } catch (e) { return ''; }
+    }
+
+    var selectors = [
+      '[data-message-author-role]',
+      '[data-testid^="response-turn"]',
+      '[data-testid="user-message"]',
+      '[data-message-id]',
+      'article[data-testid^="conversation-turn"]',
+      '.font-claude-response',
+      '.prose', '.markdown', '.whitespace-pre-wrap',
+      '[class*="user-message"]', '[class*="assistant-message"]', '[class*="ai-message"]'
+    ];
+
+    var found = selectors.map(function (sel) {
+      var els = Array.from(document.querySelectorAll(sel));
+      return {
+        selector: sel,
+        count: els.length,
+        samples: els.slice(0, 3).map(function (e) {
+          return {
+            text: ((e.innerText || '').trim()).slice(0, 500),
+            role: (e.getAttribute && (e.getAttribute('data-message-author-role') || e.getAttribute('data-role'))) || null,
+            htmlSnippet: shortHtml(e, 300)
+          };
+        })
+      };
+    });
+
+    var scrollables = Array.from(document.querySelectorAll('*')).filter(function (el) {
+      try {
+        var s = getComputedStyle(el);
+        return (s.overflowY === 'auto' || s.overflowY === 'scroll') && el.scrollHeight > el.clientHeight + 50;
+      } catch (e) { return false; }
+    });
+    scrollables.sort(function (a, b) { return (b.scrollHeight - b.clientHeight) - (a.scrollHeight - a.clientHeight); });
+    var scroll = scrollables[0] || document.scrollingElement || document.documentElement;
+
+    var candidates = [];
+    var all = Array.from(document.querySelectorAll('*'));
+    for (var i = 0; i < all.length; i++) {
+      var el = all[i];
+      var txt = (el.innerText || '').trim();
+      if (txt.length < 2) continue;
+      var hint = (el.getAttribute && (el.getAttribute('data-message-author-role') || el.getAttribute('data-role') || el.getAttribute('data-testid'))) || (Array.from(el.classList || []).slice(0, 3).join(' '));
+      if (hint && (hint.indexOf('user') !== -1 || hint.indexOf('assistant') !== -1 || hint.indexOf('response') !== -1)) {
+        candidates.push({ tag: el.tagName, hint: hint, textSnippet: txt.slice(0, 200), html: shortHtml(el, 300) });
+      }
+      if (candidates.length >= 6) break;
+    }
+
+    return {
+      url: location.href,
+      title: document.title,
+      scrollContainer: { tag: (scroll && scroll.tagName) || null, id: scroll && scroll.id || null, classes: scroll && scroll.className || null, snippet: shortHtml(scroll, 500) },
+      selectorsSummary: found,
+      sampleCandidates: candidates.slice(0, 6)
+    };
+  }
+
+  // expose for quick console access
+  try { window.inspectDomStructure = inspectDomStructure; } catch (e) {}
+
   // HTML to Markdown converter
   // ==========================================================
   function htmlToMarkdown(html) {

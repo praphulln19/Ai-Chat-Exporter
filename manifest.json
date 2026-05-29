@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "AI Chat Downloader",
-  "version": "1.5",
-  "description": "Download chats from Outlier Playground, ChatGPT, and Claude as Markdown or Word files.",
+  "version": "1.6",
+  "description": "Download chats from Outlier Playground, ChatGPT, Claude, GitHub Copilot, and more as Markdown or Word files.",
   "icons": {
     "48": "icons/icon-48.png",
     "96": "icons/icon-96.png"
