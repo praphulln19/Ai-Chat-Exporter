@@ -1,6 +1,28 @@
 /* =====================================================
-   AI Chat Downloader - Popup Styles
+   AI Chat Downloader — "Duplicate Slip" theme
+   A chat export is a copy of a conversation in another
+   format — styled like a carbon-copy order pad, where
+   each colored sheet underneath is a different copy.
    ===================================================== */
+
+:root {
+  --desk: #241e19;
+  --desk-soft: #34291f;
+  --paper: #faf6ec;
+  --paper-edge: #f1ead9;
+  --copy-yellow: #e7c468;
+  --copy-yellow-ink: #7a5b18;
+  --copy-pink: #d98c82;
+  --copy-pink-ink: #8c3a2e;
+  --ink: #2a2420;
+  --ink-soft: #6b5f52;
+  --ink-faint: #b9ae9c;
+  --stamp-green: #3f6b4c;
+  --stamp-red: #a23b2a;
+
+  --mono: ui-monospace, "Cascadia Mono", "SFMono-Regular", Consolas, "Roboto Mono", "Liberation Mono", monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
 
 * {
   box-sizing: border-box;
@@ -9,230 +31,348 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  min-width: 300px;
-  max-width: 360px;
-  background: #1a1a2e;
-  color: #e0e0e0;
+  font-family: var(--sans);
+  min-width: 320px;
+  max-width: 380px;
+  padding: 18px 16px 16px;
+  background: radial-gradient(120% 140% at 50% -20%, var(--desk-soft), var(--desk) 70%);
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
 }
 
-/* =====================================================
-   Container
-   ===================================================== */
-
-.container {
-  padding: 16px;
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-faint) var(--desk);
 }
 
 /* =====================================================
-   Heading
+   Stack — the desk surface holding the duplicate sheets
    ===================================================== */
 
-h2 {
-  margin: 0 0 14px;
-  font-size: 17px;
+.stack {
+  position: relative;
+}
+
+.sheet {
+  position: absolute;
+  inset: 0;
+  border-radius: 5px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
+}
+
+.sheet-pink {
+  background: var(--copy-pink);
+  transform: rotate(-3deg) translate(3px, 7px);
+}
+
+.sheet-yellow {
+  background: var(--copy-yellow);
+  transform: rotate(2deg) translate(-2px, 4px);
+}
+
+/* =====================================================
+   Ticket — the top copy
+   ===================================================== */
+
+.ticket {
+  position: relative;
+  z-index: 2;
+  background: var(--paper);
+  border-radius: 5px;
+  padding: 18px 18px 14px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.perf {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background-image: radial-gradient(circle, var(--desk) 1.6px, transparent 1.7px);
+  background-size: 12px 8px;
+  background-position: 6px center;
+  opacity: 0.9;
+}
+
+.watermark {
+  position: absolute;
+  top: 10px;
+  right: -26px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--ink);
+  opacity: 0.05;
+  transform: rotate(8deg);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* =====================================================
+   Head
+   ===================================================== */
+
+.head {
+  padding-top: 8px;
   text-align: center;
-  color: #fff;
-  letter-spacing: 0.3px;
+}
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--copy-pink-ink);
+}
+
+.head h2 {
+  margin-top: 3px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
 }
 
 /* =====================================================
-   Options Panel
+   Dashed rule (tear line)
+   ===================================================== */
+
+.rule {
+  height: 0;
+  border-top: 1.5px dashed var(--ink-faint);
+  opacity: 0.6;
+  margin: 14px 0;
+}
+
+/* =====================================================
+   Options
    ===================================================== */
 
 .options {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 14px;
-  padding: 10px 12px;
-  background: #16213e;
-  border-radius: 8px;
-  border: 1px solid #2a2a4a;
+  gap: 10px;
 }
 
-.options label {
-  font-size: 13px;
+.check {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 9px;
   cursor: pointer;
-  color: #e0e0e0;
-  transition: color 0.2s;
   user-select: none;
 }
 
-.options label:hover {
-  color: #fff;
-}
-
-/* Checkbox */
-.options input[type="checkbox"] {
-  accent-color: #4ecca3;
-  width: 15px;
-  height: 15px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-/* Text input (filename prefix) */
-.options input[type="text"] {
-  width: 100%;
-  padding: 6px 8px;
-  margin-top: 4px;
-  border: 1px solid #333;
-  border-radius: 4px;
-  background: #1a1a2e;
-  color: #e0e0e0;
+.check span {
   font-size: 13px;
+  color: var(--ink);
+}
+
+.check input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border: 1.5px solid var(--ink-faint);
+  border-radius: 3px;
+  background: var(--paper);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.check input[type="checkbox"]:hover {
+  border-color: var(--ink-soft);
+}
+
+.check input[type="checkbox"]:checked {
+  background: var(--stamp-green);
+  border-color: var(--stamp-green);
+}
+
+.check input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 4.5px;
+  top: 1.5px;
+  width: 4px;
+  height: 8px;
+  border: solid var(--paper);
+  border-width: 0 2px 2px 0;
+  transform: rotate(38deg);
+}
+
+.check input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--copy-pink-ink);
+  outline-offset: 2px;
+}
+
+/* Filename field — styled as a fill-in line, not a boxed input */
+
+.field {
+  margin-top: 2px;
+  padding-top: 4px;
+}
+
+.field label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 5px;
+}
+
+.field input[type="text"] {
+  width: 100%;
+  padding: 4px 2px 6px;
+  border: none;
+  border-bottom: 1.5px dashed var(--ink-faint);
+  background: transparent;
+  color: var(--ink);
+  font-size: 13.5px;
+  font-family: var(--sans);
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.15s;
 }
 
-.options input[type="text"]:focus {
-  border-color: #4ecca3;
-  box-shadow: 0 0 0 2px rgba(78, 204, 163, 0.15);
+.field input[type="text"]::placeholder {
+  color: var(--ink-faint);
 }
 
-.options input[type="text"]::placeholder {
-  color: #666;
+.field input[type="text"]:focus {
+  border-bottom-color: var(--copy-pink-ink);
 }
 
 /* =====================================================
-   Buttons - Base
+   Actions — each button reads as one colored duplicate
    ===================================================== */
 
-button {
-  width: 100%;
-  padding: 10px;
-  margin-top: 6px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 0.2px;
-  transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
-  outline: none;
+.actions {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
+  flex-direction: column;
+  gap: 8px;
 }
 
-button:active {
+.action {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid var(--paper-edge);
+  border-radius: 4px;
+  background: var(--paper-edge);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.1s, border-color 0.15s, background 0.15s;
+  outline: none;
+}
+
+.action:hover {
+  background: var(--paper);
+}
+
+.action:active {
   transform: scale(0.98);
 }
 
-button:focus-visible {
-  box-shadow: 0 0 0 2px rgba(78, 204, 163, 0.5);
+.action:focus-visible {
+  border-color: var(--ink);
 }
 
-button:disabled {
+.action:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
 }
 
+.action .tab {
+  flex-shrink: 0;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 6px;
+  border-radius: 3px;
+  color: var(--ink);
+}
+
+.action .label {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.action .label b {
+  font-weight: 700;
+}
+
+.action-a .tab {
+  background: var(--paper);
+  border: 1px solid var(--ink-faint);
+  color: var(--ink-soft);
+}
+
+.action-b .tab {
+  background: var(--copy-yellow);
+  color: var(--copy-yellow-ink);
+}
+
+.action-b:hover {
+  border-color: var(--copy-yellow);
+}
+
+.action-c .tab {
+  background: var(--copy-pink);
+  color: var(--copy-pink-ink);
+}
+
+.action-c:hover {
+  border-color: var(--copy-pink);
+}
+
 /* =====================================================
-   Download Markdown Button
-   ===================================================== */
-
-#downloadBtn {
-  background: #0f3460;
-  color: #fff;
-}
-
-#downloadBtn:hover:not(:disabled) {
-  background: #1a5276;
-  box-shadow: 0 2px 8px rgba(15, 52, 96, 0.5);
-}
-
-/* =====================================================
-   Download DOC Button
-   (supports both #downloadDocBtn and #downloadDocxBtn)
-   ===================================================== */
-
-#downloadDocBtn,
-#downloadDocxBtn {
-  background: #1e6f50;
-  color: #fff;
-}
-
-#downloadDocBtn:hover:not(:disabled),
-#downloadDocxBtn:hover:not(:disabled) {
-  background: #28a06e;
-  box-shadow: 0 2px 8px rgba(30, 111, 80, 0.5);
-}
-
-/* =====================================================
-   Copy Button
-   ===================================================== */
-
-#copyBtn {
-  background: #533483;
-  color: #fff;
-}
-
-#copyBtn:hover:not(:disabled) {
-  background: #6c3fa0;
-  box-shadow: 0 2px 8px rgba(83, 52, 131, 0.5);
-}
-
-/* =====================================================
-   Status Message
+   Status
    ===================================================== */
 
 #status {
   text-align: center;
-  font-size: 12px;
-  margin-top: 10px;
-  min-height: 18px;
-  color: #4ecca3;
-  font-weight: 500;
-  transition: color 0.2s;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin-top: 12px;
+  min-height: 16px;
+  color: var(--stamp-green);
   word-break: break-word;
   line-height: 1.4;
 }
 
 /* =====================================================
-   Divider (optional utility)
+   Entrance — the pad settling onto the desk
    ===================================================== */
 
-.divider {
-  height: 1px;
-  background: #2a2a4a;
-  margin: 10px 0;
-  border: none;
+@media (prefers-reduced-motion: no-preference) {
+  .sheet,
+  .ticket {
+    animation: settle 0.32s cubic-bezier(0.2, 0.7, 0.3, 1) backwards;
+  }
+
+  .sheet-yellow { animation-delay: 0.03s; }
+  .sheet-pink { animation-delay: 0.06s; }
+
+  @keyframes settle {
+    from {
+      opacity: 0;
+      transform: translateY(-6px) scale(0.98);
+    }
+  }
 }
-
-/* =====================================================
-   Scrollbar (Firefox)
-   ===================================================== */
-
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #2a2a4a #1a1a2e;
-}
-
-/* =====================================================
-   Filename Prefix Row
-   ===================================================== */
-
-.filename-row {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.filename-row label {
-  font-size: 12px;
-  color: #aaa;
-  cursor: default;
-  user-select: none;
-}
-
-.filename-row label:hover {
-  color: #aaa;  /* override the .options label:hover white */
-} 
