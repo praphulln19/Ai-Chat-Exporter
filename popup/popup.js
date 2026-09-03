@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function setStatus(msg, isError) {
     statusEl.textContent = msg;
-    statusEl.style.color = isError ? '#e74c3c' : '#4ecca3';
+    statusEl.style.color = isError ? 'var(--stamp-red)' : 'var(--stamp-green)';
   }
 
   function getMessages() {
