@@ -9,7 +9,8 @@
 [![Firefox Add-on](https://img.shields.io/badge/Firefox-Add--on-FF7139?style=for-the-badge&logo=firefox-browser&logoColor=white)](https://addons.mozilla.org/en-US/firefox/addon/ai-chat-downloader-tool/)
 [![Version](https://img.shields.io/badge/Version-1.6-blue?style=for-the-badge)](https://github.com/praphulln19/Ai-Chat-Exporter/releases)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
-[![Manifest](https://img.shields.io/badge/Manifest-V3-orange?style=for-the-badge)]()
+[![Manifest](https://img.shields.io/badge/Manifest-V3-orange?style=for-the-badge)](manifest.json)
+[![Privacy](https://img.shields.io/badge/Privacy-No%20Tracking-brightgreen?style=for-the-badge)](#privacy)
 
 [Features](#features) · [Supported Platforms](#supported-platforms) · [Installation](#installation) · [Usage](#usage) · [Privacy](#privacy) · [Contributing](#contributing)
 
@@ -19,12 +20,15 @@
 
 ## Overview
 
-AI Chat Downloader is a browser extension for Firefox and Chrome that lets you save your AI conversations in one click. It works locally — no sign-up required, no data sent anywhere, no tracking of any kind.
+**AI Chat Downloader** is a lightweight, privacy-first browser extension for Firefox and Chrome that exports AI chat conversations in one click — no sign-up, no cloud processing, no tracking. Every extraction and conversion step runs locally in your browser.
 
-Export to:
-- **Markdown** (`.md`) — clean, portable, and developer-friendly
-- **Word Document** (`.doc`) — styled output that opens reliably in Microsoft Word, Google Docs, and LibreOffice
-- **Clipboard** — paste formatted Markdown directly anywhere
+Export any conversation to:
+
+| Format | Extension | Use case |
+|---|---|---|
+| **Markdown** | `.md` | Clean, portable, developer-friendly — ideal for docs, notes, and version control |
+| **Word Document** | `.doc` | Styled output that opens reliably in Microsoft Word, Google Docs, and LibreOffice |
+| **Clipboard** | — | Instantly paste formatted Markdown anywhere |
 
 ---
 
@@ -165,7 +169,7 @@ The exported Word file includes:
 | `scripting` | Inject the extraction script into the page using Manifest V3 APIs |
 | `tabs` | Identify the active tab ID for script injection |
 
-No host permissions. No background scripts. No access to any page unless you explicitly click the extension.
+No host permissions are requested. No background scripts run. The extension never accesses a page unless you explicitly click the icon.
 
 ---
 
