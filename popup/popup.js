@@ -1272,7 +1272,7 @@ document.addEventListener('DOMContentLoaded', function () {
       } else if (msg.html && msg.html.indexOf('<') !== -1) {
         formatted = cleanHTMLForWord(msg.html);
       } else {
-        formatted = formatContent(escapeHTML(msg.content));
+        formatted = formatContent(msg.content);
       }
 
       if (msg.role === 'assistant-thinking') body += '<div class="thinking-block">' + formatted + '</div>';
