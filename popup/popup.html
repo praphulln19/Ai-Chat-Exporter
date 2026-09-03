@@ -7,47 +7,72 @@
   <title>Chat Downloader</title>
 </head>
 <body>
-  <div class="container">
+  <div class="stack">
 
-    <h2>💬 Chat Downloader</h2>
+    <div class="sheet sheet-pink" aria-hidden="true"></div>
+    <div class="sheet sheet-yellow" aria-hidden="true"></div>
 
-    <div class="options">
+    <div class="ticket">
+      <div class="perf" aria-hidden="true"></div>
+      <span class="watermark" aria-hidden="true">DUPLICATE</span>
 
-      <label>
-        <input type="checkbox" id="includeTimestamp" checked>
-        Include timestamp in filename
-      </label>
-
-      <label>
-        <input type="checkbox" id="includeMetadata" checked>
-        Include metadata header
-      </label>
-
-      <label>
-        <input type="checkbox" id="includeThinking" checked>
-        Include thinking process
-      </label>
-
-      <!-- Filename prefix: separate div to fix layout -->
-      <div class="filename-row">
-        <label for="filenamePrefix">Filename prefix:</label>
-        <input
-          type="text"
-          id="filenamePrefix"
-          placeholder="Model chat"
-          value="Model chat"
-          spellcheck="false"
-          autocomplete="off"
-        >
+      <div class="head">
+        <p class="eyebrow">Transcript &middot; Copy Slip</p>
+        <h2>Chat Downloader</h2>
       </div>
 
+      <div class="rule" aria-hidden="true"></div>
+
+      <div class="options">
+
+        <label class="check">
+          <input type="checkbox" id="includeTimestamp" checked>
+          <span>Include timestamp in filename</span>
+        </label>
+
+        <label class="check">
+          <input type="checkbox" id="includeMetadata" checked>
+          <span>Include metadata header</span>
+        </label>
+
+        <label class="check">
+          <input type="checkbox" id="includeThinking" checked>
+          <span>Include thinking process</span>
+        </label>
+
+        <div class="field">
+          <label for="filenamePrefix">Filename prefix</label>
+          <input
+            type="text"
+            id="filenamePrefix"
+            placeholder="Model chat"
+            value="Model chat"
+            spellcheck="false"
+            autocomplete="off"
+          >
+        </div>
+
+      </div>
+
+      <div class="rule" aria-hidden="true"></div>
+
+      <div class="actions">
+        <button id="downloadBtn" class="action action-a">
+          <span class="tab" aria-hidden="true">Copy 1</span>
+          <span class="label">Download <b>.md</b></span>
+        </button>
+        <button id="downloadDocxBtn" class="action action-b">
+          <span class="tab" aria-hidden="true">Copy 2</span>
+          <span class="label">Download <b>.doc</b></span>
+        </button>
+        <button id="copyBtn" class="action action-c">
+          <span class="tab" aria-hidden="true">Copy 3</span>
+          <span class="label">Copy to clipboard</span>
+        </button>
+      </div>
+
+      <div id="status" role="status" aria-live="polite"></div>
     </div>
-
-    <button id="downloadBtn">📥 Download .md</button>
-    <button id="downloadDocxBtn">📄 Download .doc</button>
-    <button id="copyBtn">📋 Copy to Clipboard</button>
-
-    <div id="status" role="status" aria-live="polite"></div>
 
   </div>
 
